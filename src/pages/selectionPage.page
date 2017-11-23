@@ -1,0 +1,233 @@
+<apex:page docType="html-5.0" standardStylesheets="false" sidebar="false" showHeader="false">
+  <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" lang="en">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+      
+     <div id="map_drop">
+      <label for="mappings">Mappings</label>
+      <select id="mappings" size="4">
+          
+      </select>
+     </div>
+  
+  
+  <textarea readonly="true" cols="80" id="formula" maxlength="3900" rows="20" tabindex="4" type="text" wrap="soft"></textarea>
+  <div id="dropdown">
+    <label for="functions">Functions</label>
+   <select id="functions"  size="4" title="Functions">
+       <option type="operator" id="ADD">+</option>
+       <option type="operator" id="SUBTRACT">-</option>
+       <option type="operator" id="MULTIPLY">*</option>
+       <option type="operator" id="DIVIDE">/</option>
+       <option type="open" id="OPEN_PARENTHESES">(</option>
+       <option type="close" id="CLOSE_PARENTHESES">)</option>
+   </select>
+  </div>
+  <button id = "save">Save</button>
+  <button id = "delete" style="display:inline">Delete</button>
+  <script>
+  var $ = jQuery.noConflict();
+ 
+ String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.replace(new RegExp(search, 'g'), replacement);
+};
+ 
+ 
+ 
+  var flag = "empty";
+ 
+  function getParameterByName(name, url) {
+    if (!url) {
+      url = window.location.href;
+    }
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+        results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return '';
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+  
+ function appendText(text,type){
+     $("#formula").append(" "+text);
+     
+     flag = type;
+ 
+ } 
+
+ 
+ 
+ function isElementOf(element, array){
+     for(var i=0;i<array.length;i++){
+     if(element==array[i]) return true;
+     }
+ return false;
+ }
+ 
+ function p_validate(text){
+ var o = text.split("(").length-1;
+ var c = text.split(")").length-1;
+ var t = text.substring(text.lastIndexOf(" "),text.length).trim();
+
+ 
+ if(o==c&&t!="+"&&t!="-"&&t!="/"&&t!="*") return true;
+ else return false;
+ 
+ }
+ 
+ 
+ $(function(){
+     if(getParameterByName('api_name',window.location.href)==null){$("html").empty();}
+     for(var i =0;i<window.parent.opener.QB.length;i++){
+       var opt = $("<option></option>");
+       
+      opt.attr('name',window.parent.opener.QB[i]); 
+       opt.text(window.parent.opener.QB[i]);
+       opt.attr('api_name',window.parent.opener.QB[i]);
+       opt.attr('type','value'); 
+       $('#mappings').append(opt);  
+     }
+     
+     for(var i =0;i<window.parent.opener.arr.length/2;i++){
+       var opt = $("<option></option>");
+       
+      opt.attr('name',window.parent.opener.arr[2*i]); 
+       opt.text(window.parent.opener.arr[2*i]);
+       opt.attr('api_name',window.parent.opener.arr[2*i+1]);
+       opt.attr('type','value'); 
+       $('#mappings').append(opt);  
+     }
+     
+ 
+     $("option").dblclick(
+         function(){
+            if(flag=="empty"){
+                if($(this).attr("type")=="value"){appendText($(this).attr("name"),"value"); return;}
+                if($(this).attr("type")=="open"){appendText($(this).text(),"open");return;}
+            }
+            
+            if(flag=="value"){
+                if($(this).attr("type")=="operator"){appendText($(this).text(),"operator");return;}
+                if($(this).attr("type")=="close"){appendText($(this).text(),"close");return;}
+            }
+            
+            if(flag=="operator"){
+               if($(this).attr("type")=="value"){appendText($(this).attr("name"),"value");return;}
+               if($(this).attr("type")=="open"){appendText($(this).text(),"open");return;}
+            }
+    
+            if(flag=="open"){
+                if($(this).attr("type")=="value"){appendText($(this).attr("name"),"value");return;}
+                if($(this).attr("type")=="open"){appendText($(this).text(),"open");return;}    
+            }
+     
+            if(flag=="close"){
+            if($(this).attr("type")=="operator"){appendText($(this).text(),"operator");return;}
+            }
+     });
+     
+     $("#save").click(function(){
+     var ntext = $('#formula').text();
+     
+     
+     ntext = ntext + " ";
+     for(var i=0;i<window.parent.opener.arr.length/2;i++){
+         if(ntext.includes(" "+window.parent.opener.arr[2*i]+" ")){ntext = ntext.replaceAll(" "+window.parent.opener.arr[2*i]+" "," "+window.parent.opener.arr[2*i+1]+" ");}
+     
+     
+     }
+     
+     
+     var text = ntext.replaceAll(" ","");
+     
+    if(p_validate(ntext)){ 
+     if(text.trim().length != 0){
+     
+     
+     window.parent.opener.$("[api_name='"+getParameterByName('api_name',window.location.href)+"']").attr('api_pair',text);
+     window.parent.opener.$("[api_name='"+getParameterByName('api_name',window.location.href)+"']").css("background-color","blue");
+            }
+     window.parent.opener.popup.close(); 
+     }else{alert("Function is not Valid!");}
+   
+     
+     
+     });
+     
+     $("#delete").click(function(){
+     if($("#formula").text()==""||$("#formula").text()==null){
+     }else{
+     flag = !(flag);
+     var new_text = $("#formula").text().substring(0,$("#formula").text().lastIndexOf(" "));
+     var t = new_text.substring(new_text.lastIndexOf(" "),new_text.length).trim();
+     if(t=="(") {flag = "open";
+     }else if(t==")"){ flag = "close";
+     }else if(t=="+"||t=="-"||t=="/"||t=="*"){ flag = "operator";
+     }else if(isElementOf(t,window.parent.opener.QB)||isElementOf(t,window.parent.opener.arr)){ flag = "value";
+     }else{flag = "empty";}
+     
+     console.log(t+" "+flag);
+     
+     $("#formula").text(new_text);
+     }
+    });
+     
+ 
+ });
+ 
+ 
+ 
+  </script>
+  
+  
+  
+  
+  
+  <style>
+  textarea {
+     float: left;
+     width:500px;
+     height:140px;
+     vertical-align:top;
+     }
+  
+ #functions {
+     display: inline-block;
+     margin-top: 0px;
+     vertical-align: middle;
+     width: 100px;
+     position: fixed;
+ }  
+ #dropdown{
+    width: 30px;
+    display: inline-block;
+    vertical-align: middle;
+    
+ }
+   
+ #mappings{
+     display: inline-block;
+     margin-right: 3px;
+     float: left;
+ }
+ 
+ #map_drop{
+    float: left;
+    width: 100px;   
+       clear: both;   
+ }
+ 
+ button{
+  float: left;
+  clear: both;
+}
+ 
+  </style>
+  
+  
+  
+  </html>  
+  
+
+</apex:page>

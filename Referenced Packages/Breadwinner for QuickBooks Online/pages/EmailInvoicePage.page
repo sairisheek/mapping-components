@@ -1,0 +1,227 @@
+<apex:page standardController="breadwinner_qbo__Invoice__c"  extensions="breadwinner_qbo.Invoice_RecordInfoExtension" sidebar="false" >
+    <html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        
+        <head>
+            <apex:stylesheet value="{!URLFOR($Resource.breadwinner_qbo__Breadwinner_QBO, 'Breadwinner_QBO/SLDS/assets/styles/salesforce-lightning-design-system-vf.min.css')}" ></apex:stylesheet>
+            <script src="{!URLFOR($Resource.Breadwinner_QBO, 'Breadwinner_QBO/JS/jquery-1.11.3.js')}"></script>
+            <script>
+                function HideStyleSheet() {
+                $("link.user[href$='elements.css']").each(function() {
+                    $(this).removeAttr("href");
+                });
+            }
+            
+            function message() {
+                $(".infoM6, .infoM4, .infoM3, .infoM2, .infoS1").addClass("slds-notify slds-notify--alert slds-theme--inverse-text  slds-text-align--left slds-text-heading--small slds-m-bottom--small").css( {"font-weight":"500","line-height":"1.4","word-spacing":"1px"} );
+                $(".errorM6, .errorM4, .errorM3, .errorM2, .errorS1").addClass("slds-notify slds-notify--alert slds-theme--error  slds-text-align--left slds-text-heading--small slds-m-bottom--small").css( {"font-weight":"500","line-height":"1.4","word-spacing":"1px"} );
+                $(".warningM6, .warningM4, .warningM3, .warningM2, .warningS1").addClass("slds-notify slds-notify--alert slds-theme--warning  slds-text-align--left slds-text-heading--small slds-m-bottom--small").css( {"font-weight":"500","line-height":"1.4","word-spacing":"1px"} ) ;
+                $(".confirmM6, .confirmM4, .confirmM3, .confirmM2, .confirmS1").addClass("slds-notify slds-notify--alert slds-theme--success slds-text-align--left slds-text-heading--small slds-m-bottom--small").css( {"font-weight":"500","line-height":"1.4","word-spacing":"1px"} ) ;               
+                
+                $("div .messageText h4").css( {"color": "white","padding-right" : "2px"});
+                $("div[class*='warning'] div.messageText h4").css( "color", "black" );
+                $("table.messageTable td").css({"color" : "white"});
+                $("div[class*='warning'] table.messageTable td").css( "color", "black" );
+            }
+            function addallfuncs(){
+                HideStyleSheet();
+                message();
+            }
+            $(function(){
+                addallfuncs();
+                var checkifContactsExist='{!Contacts}';
+                var checkplancode={!plancode};
+                // following is to avoid download and add attachment when there are not contacts and plancode<35
+                if((checkifContactsExist!='[]') &&(checkplancode>=35)){
+                    DownloadInvoiceAddAttachment();
+                }
+             });
+            
+            function ccShow(){
+                if($('span[id$=\"ccsection\"]').css('display') == 'inline')
+                {
+                    $('textarea[id$=\"CCInput\"]').val("");
+                }
+                $('span[id$=\"ccsection\"]').toggle();
+            }
+            
+            function bccShow(){
+                if($('span[id$=\"bcsection\"]').css('display') == 'inline')
+                {
+                    $('textarea[id$=\"BCInput\"]').val("");
+                }
+                $('span[id$=\"bcsection\"]').toggle();
+            }
+            
+            </script>
+            
+            <style>
+                
+                .message {
+                background-color: inherit;
+                border-style: none;
+                padding: initial;
+                }
+                
+                .msgIcon {
+                display: none;
+                }
+                
+                .message .messageText {
+                margin: 0px;
+                }
+                
+                .message .messageText h4 {
+                font-weight: inherit;
+                display: initial;
+                }
+                
+                
+                @media (min-width: 48em){
+                .BreadwinnerLightning .slds-form--horizontal {
+                text-align: right;
+                margin-left: 10%;
+                margin-right: 30%;
+                }}
+                .BreadwinnerLightning .slds-spinner_container{
+                    position: fixed;
+                    z-index: 9999;
+               }
+                
+            </style>
+        </head>
+        <body>
+            <apex:form >
+                <div class="BreadwinnerLightning">
+                    
+                    <apex:actionStatus id="action-status-id">  
+                        <apex:facet name="start">
+                            <div class="slds-spinner_container">
+                                <div class="slds-spinner--brand slds-spinner slds-spinner--medium" aria-hidden="false" role="alert">
+                                    <div class="slds-spinner__dot-a"></div>
+                                    <div class="slds-spinner__dot-b"></div>
+                                </div>
+                            </div>
+                        </apex:facet>
+                    </apex:actionStatus>
+                    
+                    <div class="slds-page-header" role="banner">
+                        <div class="slds-media">
+                            <div class="slds-media__body">
+                                <p class="slds-page-header__title slds-truncate">Email the Invoice</p>
+                                <p class="slds-text-body--small">Breadwinner • QuickBooks Online </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="slds-m-top--small">
+                        <apex:pageMessages id="pgmsg" />
+                            <apex:outputpanel id="pmg"> <apex:pageMessage rendered="{!isOAuthIssue}" escape="false" detail="{!oAuthExceptionWarningMessage}" summary="There was a problem with the connection to QuickBooks Online:" severity="WARNING" strength="3" /> </apex:outputpanel>                 
+                        
+                    </div>
+                    <apex:actionFunction name="DownloadInvoiceAddAttachment" reRender="pgmsg,attachmentpanel,pmg,sendemail" status="action-status-id" action="{!downloadInvoice}" oncomplete="addallfuncs();" />
+                    <apex:pageMessage summary="This Invoice is not associted with any QuickBooks Online Company." severity="warning" strength="1" rendered="{!bac==null}" /> 
+                    <div class="errorM3" style="display:{!IF(AND(bac!=null,if(Contacts.size >0,false,true),plancode>=35,NOT(NoAssociatedSFAccount)),'','none')}" >
+                        There were no Contacts with Email found for the related Account <a href="/{!bac.Salesforce_Account__c}" target="_blank">{!bac.Salesforce_Account__r.name}</a>.
+                     </div>
+                    <apex:pageMessage summary="This QuickBooks Online Customer is not matched with any Salesforce Account yet, if you want to match this, please go to Setup in Breadwinner tab and Start the Account Sync."  severity="WARNING"  rendered="{!AND((NoAssociatedSFAccount),plancode >= 35)}"/>       
+        
+                    <apex:pageMessage summary="You cannot send a PDF Email via Breadwinner on your current Breadwinner Subscription.
+                            Please Contact Breadwinner to enquire about upgrading." severity="INFO" strength="1" rendered="{!if(plancode < 35,true,false)}" />
+
+                    <apex:outputPanel layout="block" rendered="{!if(Contacts.size >0,true,false)}">
+                        <apex:pageMessage summary="You are using Breadwinner in QuickBooks Online Read Only Mode. While Breadwinner reads data from QuickBooks Online, no changes will be made to QuickBooks Online. QuickBooks Online is in Read-Only mode and will not be altered in any way." severity="Info" rendered="{!isReadOnlyMode}"/>
+                        <apex:pageMessage summary=" Email templates is currently in beta. Only plain-text email templates are supported. Only merge fields on the Invoice, Salesforce Account, Salesforce Contact, and the Salesforce Opportunity (if the Opportunity lookup is populated on the Invoice) are supported." severity="info" rendered="{!AND(isBusinessOrHigher,Contacts.size > 0)}" />
+                        <apex:pageMessage summary="It looks like you have or someone has already sent this Invoice to the customer. You can proceed to send it again." severity="INFO" strength="1" rendered="{!invoice.breadwinner_qbo__Email_Status__c=='EmailSent'}" />
+                        
+                        <div class="slds-form--horizontal slds-m-top--medium">
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label" >To</label>
+                                <div class="slds-form-element__control">
+                                    <apex:selectList value="{!contactId}" size="1" disabled="{!if(plancode < 35,true,false)}" styleClass="slds-input" onchange="callsettingValuesFromTemplate();">
+                                        <apex:selectOptions value="{!Contacts}"></apex:selectOptions>
+                                    </apex:selectList>
+                                </div>
+                                <apex:outputPanel rendered="{!isBusinessOrHigher}">
+                                    <a onclick="ccShow();">Cc </a>
+                                    <a onclick="bccShow();">Bcc </a> 
+                                </apex:outputPanel>
+                            </div>
+                            <div class="slds-form-element">
+                                <apex:outputPanel id="ccsection" style="display: none;">
+                                    <apex:outputPanel rendered="{!isBusinessOrHigher}">
+                                        <label class="slds-form-element__label" style="vertical-align: top;">Cc</label>
+                                        <div class="slds-form-element__control">
+                                            <apex:inputTextarea id="CCInput" value="{!ccEmails}" rows="1" disabled="{!if(plancode < 35,true,false)}"  styleClass="slds-input" html-placeholder=" You can enter upto a max. of 25 comma(,) separated Emails." />
+                                        </div>
+                                    </apex:outputPanel>
+                                </apex:outputPanel>
+                            </div>
+                            
+                            
+                            <div class="slds-form-element">
+                                <apex:outputPanel id="bcsection" style="display: none;">
+                                    <apex:outputPanel rendered="{!isBusinessOrHigher}">
+                                        <label class="slds-form-element__label" style="vertical-align: top;">Bcc</label>
+                                        <div class="slds-form-element__control">
+                                            <apex:inputTextarea id="BCInput" value="{!bccEmails}" rows="1" disabled="{!if(plancode < 35,true,false)}"  styleClass="slds-input" html-placeholder=" You can enter upto a max. of 25 comma(,) separated Emails."/>
+                                        </div>
+                                    </apex:outputPanel>
+                                </apex:outputPanel>
+                            </div>
+                            <div class="slds-form-element">
+                                <apex:outputPanel rendered="{!isBusinessOrHigher}">
+                                    <label class="slds-form-element__label" >Email Templates</label>
+                                    <div class="slds-form-element__control">
+                                        <apex:selectList id="SelectTemplate" value="{!EmailTemplateSelected}" size="1" styleClass="slds-input" onchange="callsettingValuesFromTemplate();" disabled="{!if(Contacts.size >0,false,true)}" >
+                                            <apex:selectOptions value="{!EmailTemplates}" ></apex:selectOptions>
+                                        </apex:selectList>
+                                    </div>
+                                    <apex:actionFunction action="{!settingValuesFromTemplate}" name="callsettingValuesFromTemplate" reRender="Subject,Body,pm" oncomplete="HideStyleSheet();message();"/>
+                                </apex:outputPanel>
+                            </div>
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label" >Subject</label>
+                                <div class="slds-form-element__control">
+                                    <apex:inputText value="{!emailSubject}" styleClass="slds-input" id="Subject" disabled="{!if(plancode < 35,true,false)}"/>
+                                </div>
+                            </div>
+                            
+                            <div class="slds-form-element">
+                                <label class="slds-form-element__label" >Body</label>
+                                <div class="slds-form-element__control">
+                                    <apex:inputTextarea styleClass="slds-input" richText="false" rows="7" value="{!emailBody}" id="Body" disabled="{!if(plancode < 35,true,false)}"/>
+                                    
+                                </div>
+                            </div>
+                            <apex:outputPanel layout="block" styleClass="slds-form-element" rendered="{!invoice.breadwinner_qbo__Email_Status__c!='EmailSent'}">
+                                <label class="slds-form-element__label" >Mark this {!invoice.Type__c} as sent in QuickBooks Online</label>
+                                <div class="slds-form-element__control" style="margin-top: 3px;">
+                                    <label class="slds-checkbox">
+                                       <apex:inputCheckbox value="{!isAllowedToUpdateInQBO}" disabled="{!if(plancode < 35,true,false)}"/>
+                                        <span class="slds-checkbox--faux"></span>
+                                    </label>
+                                </div>
+                            </apex:outputPanel>
+                            <apex:outputPanel layout="block" id="attachmentpanel" styleClass="slds-form-element">
+                                <label class="slds-form-element__label" >Attachments</label>
+                                <div class="slds-form-element__control" style="margin-top: 3px;">
+                                    {!AttachmentName}
+                                </div>
+                            </apex:outputPanel>
+                            
+                            
+                        </div>
+                        
+                        <div align="center" class="slds-m-top--large">
+                             <apex:commandButton value="Send Email" status="action-status-id" action="{!sendEmail}" styleClass="slds-button slds-button--brand" disabled="{!if(OR(plancode < 35,isOAuthIssue),true,false)}" oncomplete="actionToUpdateInQBO();addallfuncs();" id="sendemail"/>
+                            <apex:commandButton value="Cancel" action="{!cancel}" reRender="pgmsg" styleClass="slds-button slds-button--neutral"  status="action-status-id" />
+                            <apex:actionFunction name="actionToUpdateInQBO" reRender="pgmsg" oncomplete="actionToUpdateInSalesforce();addallfuncs();" action="{!UpdateinQBO}"   status="action-status-id" />
+                            <apex:actionFunction name="actionToUpdateInSalesforce" reRender="pgmsg" status="action-status-id" action="{!updateinSF}" oncomplete="addallfuncs();" />
+                            <apex:outputPanel layout="block" styleclass="slds-text-heading--small slds-m-top--small" style="font-weight: bold;font-style: italic;" rendered="{!isReadOnlyMode}">You are using Breadwinner in QuickBooks Online Read Only Mode. While Breadwinner reads data from QuickBooks Online, no changes will be made to QuickBooks Online. QuickBooks Online is in Read-Only mode and will not be altered in any way.</apex:outputPanel>
+                        </div>
+                    </apex:outputPanel>
+                </div>
+            </apex:form>
+        </body>
+    </html>
+</apex:page>

@@ -1,0 +1,16 @@
+<apex:page standardController="breadwinner_qbo__Line_Item__c" sidebar="false">
+    
+    <apex:stylesheet value="{!URLFOR($Resource.breadwinner_qbo__Breadwinner_QBO, 'Breadwinner_QBO/SLDS/assets/styles/salesforce-lightning-design-system-vf.min.css')}" ></apex:stylesheet>
+    
+    <div class="BreadwinnerLightning">
+        <div class="slds-notify slds-notify--alert slds-theme--error slds-notify slds-notify--alert slds-theme--error  slds-text-align--left slds-text-heading--small slds-m-bottom--small" role="alert" style='color:white;font-weight:500;line-height:1.4;word-spacing:1px;'>
+            <p>
+                This action is not possible with Breadwinner.
+            </p>
+            <p>
+                You can create/edit an Invoice to create/edit line items. 
+            </p>
+        </div>
+    </div>
+    
+</apex:page>

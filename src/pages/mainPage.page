@@ -1,0 +1,362 @@
+<apex:page docType="html-5.0" standardStylesheets="false" sidebar="false" controller="DataLoad" >
+<html xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" lang="en">
+<apex:stylesheet value="{!URLFOR($Resource.LDS, 'assets/styles/salesforce-lightning-design-system-vf.css')}" />
+
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    
+
+
+ <apex:form >       
+        <apex:inputHidden id="saveField" value="{!sjson}"/>
+        <apex:actionFunction name="passPost" action="{!post}" rerender="saveField"/>
+        <apex:commandButton value="Save" onclick="setVar(); return false;" id="save" style="width:50px;height:30px;margin-left:25%;position:fixed" />
+</apex:form>
+  <select id="typesDrop"  style="margin-left:25%;margin-top:5%;position:fixed">
+  </select>
+
+
+<script>
+
+var $ = jQuery.noConflict();
+var popup;
+
+var arr;
+var types;  
+
+
+function populateTypes(){
+    
+    Visualforce.remoting.Manager.invokeAction(
+        '{!$RemoteAction.DataLoad.getTypes}',
+        function(result, event) {
+          types = result;
+          
+        for(var i=0;i<types.length;i++){
+    var opt =  $("<option></option>");
+    opt.attr("value",types[i]);
+    opt.text(types[i]);
+    $("#typesDrop").append(opt);
+    }});
+    
+    
+}
+
+function setVar(){
+    if($("[api_pair]").length){
+    var param =[];
+    $("[api_pair]").each(function(index){
+ param[index] = new Object();
+ param[index].api_name = $(this).attr("api_name");
+ param[index].api_pair = $(this).attr("api_pair");
+    
+});
+
+    $('[id$=saveField]').val(JSON.stringify(param));
+    passPost();
+    alert("Saved!");
+    window.location.reload();}
+else{alert("No mappings have been completed!");}
+
+}
+
+String.prototype.replaceAll = function(search, replacement) {
+    var target = this;
+    return target.replace(new RegExp(search, 'g'), replacement);
+};
+
+
+
+
+
+var I = {
+        "Taxable": false,
+        "BillAddr": {
+            "Id": "3",
+            "Line1": "12 Ocean Dr.",
+            "City": "Half Moon Bay",
+            "CountrySubDivisionCode": "CA",
+            "PostalCode": "94213",
+            "Lat": "37.4307072",
+            "Long": "-122.4295234"
+        },
+        "Job": false,
+        "BillWithParent": false,
+        "Balance": 85.0,
+        "BalanceWithJobs": 85.0,
+        "PreferredDeliveryMethod": "Print",
+        "domain": "QBO",
+        "sparse": false,
+        "Id": "2",
+        "SyncToken": "0",
+        "MetaData": {
+            "CreateTime": "2014-09-11T16:49:28-07:00",
+            "LastUpdatedTime": "2014-09-18T12:56:01-07:00"
+        },
+        "GivenName": "Bill",
+        "FamilyName": "Lucchini",
+        "FullyQualifiedName": "Bill's Windsurf Shop",
+        "CompanyName": "Bill's Windsurf Shop",
+        "DisplayName": "Bill's Windsurf Shop",
+        "PrintOnCheckName": "Bill's Windsurf Shop",
+        "Active": true,
+        "PrimaryPhone": {
+            "FreeFormNumber": "(415) 444-6538"
+        },
+        "PrimaryEmailAddr": {
+            "Address": "Surf@Intuit.com"
+        }
+    };
+
+var QB;
+
+$(function() {
+      populateTypes();
+     setSFList();
+     setQBList(I);
+    
+    $('#typesDrop').on('change', function() {
+  if(typeof popup !='undefined'){
+  popup.close();}
+  $("#SFList").empty();
+  setSFList();
+  
+  
+});
+   
+    $(".draggable").draggable({
+        helper: cloner,
+        opacity: 1,
+        snap: ".holder",
+        snapMode: "inner",
+        snapTolerance: 50
+        
+    });
+    
+    
+   
+    
+    $(".draggable1").draggable({
+        helper: cloner1,
+        opacity: 1,
+        snap: ".holder",
+        snapMode: "inner",
+        snapTolerance: 50
+        
+    });
+    
+    
+    
+    $("body").on('dblclick','.holder',function(event){
+        if($(this).attr("api_pair")){
+            $(this).removeAttr("api_pair");
+            $(this).text($(this).attr("name"));
+            $(this).css("background-color","#eef1f6");
+             $(this).append('<button class="slds-button slds-button--icon-border" aria-haspopup="true" title="More Options" style="position:relative;left:10px;bottom:2px"> <svg class="slds-button__icon" aria-hidden="true"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.LDS, "assets/icons/utility-sprite/svg/symbols.svg#down")}"></use></svg><span class="slds-assistive-text">More Options</span></button>');
+            $(this).children().attr("href","https://c.na35.visual.force.com/apex/selectionPage?api_name="+$(this).attr("api_name"));
+            
+        }
+    });
+
+    $('body').on('click','.slds-button',
+
+    function(){
+    var windowFeatures =    'height=250' +
+   ',width=750' +
+   ',toolbar=0' +
+   ',scrollbars=0' +
+   ',status=0' + 
+   ',resizable=0' +
+   ',location=0' +
+   ',menuBar=0';
+
+    var windowURL = $(this).attr("href"); 
+    popup = window.open(windowURL, 'Multiple Mapping', windowFeatures+',left=0' +',top=0');
+    popup.focus();  
+
+});
+
+});
+
+function cloner(event){ 
+var li = $(this).clone();
+li.css("margin",8);
+li.addClass("helper");
+return li;
+   }
+function cloner1(event){ 
+var li = $(this).clone();
+li.css("margin",0);
+li.addClass("helper");
+return li;
+
+}
+
+function setSFList(){
+  
+  Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.DataLoad.listFields}', $("#typesDrop").val(), function(result,event){
+  
+  
+  
+  var data = JSON.parse(result);
+  
+  
+  
+   
+   for(var i = 0;i<data.length;i++){
+    
+    var li = $('<li class = "slds-item longer holder">List Item</li>').text(data[i].name);
+    li.attr("name",data[i].name);
+    li.attr("api_name",data[i].api_name);
+    li.append('<button class="slds-button slds-button--icon-border" aria-haspopup="true" title="More Options" style="position:relative;left:10px;bottom:2px"> <svg class="slds-button__icon" aria-hidden="true"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.LDS, "assets/icons/utility-sprite/svg/symbols.svg#down")}"></use></svg><span class="slds-assistive-text">More Options</span></button>');
+    li.children().attr("href","https://c.na35.visual.force.com/apex/selectionPage?api_name="+data[i].api_name);
+    li.droppable({
+        drop: function(event, ui) {
+            $(this).context.textContent = ui.draggable.context.textContent;
+            $(this).css("background-color","#fefefe");
+            $(this).attr("api_pair",$(ui.draggable).attr("api_name"));   
+            $(this).append('<button class="slds-button slds-button--icon-border" aria-haspopup="true" title="More Options" style="style="position:relative;left:10px;bottom:2px""> <svg class="slds-button__icon" aria-hidden="true"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="{!URLFOR($Resource.LDS, "assets/icons/utility-sprite/svg/symbols.svg#down")}"></use></svg><span class="slds-assistive-text">More Options</span></button>');
+            $(this).children().attr("href","https://c.na35.visual.force.com/apex/selectionPage?api_name="+$(this).attr("api_name"));
+        
+        },
+    });
+    $("#SFList").append(li);
+    
+    }
+},{escape:false});
+}
+
+function setQBList(data){
+var txt = json2txt(data);
+txt = txt.substring(0,txt.length-1);
+ QB = txt.split('|');
+
+    for(var i =0;i<QB.length;i++){
+   QB[i] = QB[i].replace("undefined","");
+    if(QB[i].startsWith(".")){ QB[i] = QB[i].replace(".","");}
+   
+    
+    }
+    
+    for(var i =0;i<QB.length;i++){
+   
+    if(i==0) addQBbutton(QB[i],QB[i],true);
+    else addQBbutton(QB[i],QB[i],false);
+
+    }
+
+var cur = null;
+var txt = "";
+for(var i =0;i<QB.length;i++){
+    if(!QB[i].includes('.')) continue;
+    
+    if(QB[i].includes(cur)){
+            txt+=(QB[i]+"+");
+    
+    }else{cur=QB[i].substring(0,QB[i].lastIndexOf('.')); i--; 
+    txt+="|"+cur+"|";
+    }
+}
+
+ arr = txt.substring(1,txt.length).split("|");
+   trimArr(arr);
+    for(var i=0;i<arr.length/2;i++){
+        addQBbutton(arr[2*i],arr[2*i+1],false);
+    }
+
+}
+
+
+function trimArr(array){
+    for(var i = 0;i<array.length/2;i++){
+        array[2*i+1]= "("+array[2*i+1].substring(0,array[2*i+1].length-1)+")";
+    }
+}
+
+function json2txt(obj, path)
+{
+    var txt = '';
+    for (var key in obj)
+    {
+        if (obj.hasOwnProperty(key))
+        {
+            if ('object' == typeof(obj[key]))
+            {
+                txt += json2txt(obj[key], path + (path ? '.' : '') + key);
+            } 
+            else
+            {
+                txt += path + '.' + key + '|';
+            }
+        }
+    }
+    return txt;
+}
+
+
+function addQBbutton(name,api_name,d){
+var li = $('<li class = "slds-item longer">List Item</li>').text(name);
+    if(d){li.addClass("draggable1");}
+    else{li.addClass("draggable");}
+    li.attr("name",name);
+    li.attr("api_name",api_name);
+    
+    $("#IList").append(li);
+    
+}
+
+
+</script>
+
+<style>
+.slds-item.longer {
+    background-color: #fefefe;
+    
+    text-align: center
+   }
+ 
+ .slds-item.longer.holder{
+     background-color: #eef1f6;
+     position: relative
+    
+     
+     
+ }  
+  
+ .draggable{
+     
+ }
+
+.draggable1{
+}
+</style>
+
+
+
+<div class="component-mapping">
+
+  <section class="slds-clearfix">
+    <div  class="slds-float--left">
+      <ul id = "SFList" class="slds-has-dividers--around-space">
+        
+      </ul>
+    </div>
+
+    <div class="slds-align--absolute-center">
+     <ul id="IList" class="slds-has-dividers--around-space">
+       
+     </ul>
+   </div> 
+   
+
+   
+   
+ </section>
+
+
+
+
+</div> 
+</html>
+</apex:page>
